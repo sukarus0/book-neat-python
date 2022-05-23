@@ -1,6 +1,6 @@
 #!/bin/bash
 
-required_pkg='SQLAlchemy'
+required_pkg='SQLAlchemy mysql-connector-python'
 pkg_list=($required_pkg)
 
 for package in ${pkg_list[@]};
