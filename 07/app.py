@@ -212,7 +212,8 @@ def create_app(test_config=None):
             print(f"token: {token} - {type(token)}")
 
             return jsonify({
-                'access_token' : token
+                'access_token' : token,
+                'user_id' : user_id
             })
         else:
             return '', 401
