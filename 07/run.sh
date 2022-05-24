@@ -1,6 +1,6 @@
 #!/bin/bash
 
-required_pkg='SQLAlchemy mysql-connector-python bcrypt PyJWT'
+required_pkg='SQLAlchemy mysql-connector-python bcrypt PyJWT flask-cors'
 pkg_list=($required_pkg)
 
 for package in ${pkg_list[@]};
