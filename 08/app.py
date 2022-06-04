@@ -1,13 +1,22 @@
+"""
+---- app.py
+"""
+
+from datetime import datetime, timedelta
+from functools import wraps
 from flask import Flask, jsonify, request, Response, current_app, g
 from flask.json import JSONEncoder
 from sqlalchemy import create_engine, text
 import bcrypt
 import jwt
-from datetime import datetime, timedelta
-from functools import wraps
 from flask_cors import CORS
 
+
 class CustomJSONEncoder(JSONEncoder):
+    """
+    Custom Json Encoder
+    """
+
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)
@@ -16,18 +25,25 @@ class CustomJSONEncoder(JSONEncoder):
 
 
 def login_required(f):
+    """
+    login decorate function
+    """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        access_token = request.headers.get('Authorization')
+        access_token = request.headers.get("Authorization")
         if access_token is not None:
             try:
-                payload = jwt.decode(access_token, current_app.config['JWT_SECRET_KEY'], 'HS256')
+                payload = jwt.decode(
+                    access_token, current_app.config["JWT_SECRET_KEY"], "HS256"
+                )
             except jwt.InvaildTokenError:
                 payload = None
 
-            if payload is None: return Response(status=401)
+            if payload is None:
+                return Response(status=401)
 
-            user_id = payload['user_id']
+            user_id = payload["user_id"]
             g.user_id = user_id
             g.user = get_user(user_id) if user_id else None
         else:
@@ -39,6 +55,9 @@ def login_required(f):
 
 
 def get_user(user_id):
+    """
+    user get function
+    """
     user = current_app.database.execute(
         text(
             """
@@ -67,6 +86,9 @@ def get_user(user_id):
 
 
 def insert_user(user):
+    """
+    user insert function
+    """
     return current_app.database.execute(
         text(
             """
@@ -88,6 +110,9 @@ def insert_user(user):
 
 
 def insert_tweet(user_tweet):
+    """
+    tweet fucntion
+    """
     return current_app.database.execute(
         text(
             """
@@ -105,6 +130,9 @@ def insert_tweet(user_tweet):
 
 
 def insert_follow(user_follow):
+    """
+    follow function
+    """
     return current_app.database.execute(
         text(
             """
@@ -122,6 +150,9 @@ def insert_follow(user_follow):
 
 
 def insert_unfollow(user_unfollow):
+    """
+    unfollow function
+    """
     return current_app.database.execute(
         text(
             """
@@ -135,6 +166,9 @@ def insert_unfollow(user_unfollow):
 
 
 def get_timeline(user_id):
+    """
+    timeline get funtion
+    """
     timeline = current_app.database.execute(
         text(
             """
@@ -156,6 +190,9 @@ def get_timeline(user_id):
 
 
 def create_app(test_config=None):
+    """
+    create app function
+    """
     app = Flask(__name__)
 
     CORS(app)
@@ -177,52 +214,58 @@ def create_app(test_config=None):
     @app.route("/sign-up", methods=["POST"])
     def sign_up():
         new_user = request.json
-        new_user['password'] = bcrypt.hashpw(new_user['password'].encode('UTF-8'), bcrypt.gensalt())
+        new_user["password"] = bcrypt.hashpw(
+            new_user["password"].encode("UTF-8"), bcrypt.gensalt()
+        )
         new_user_id = insert_user(new_user)
         new_user = get_user(new_user_id)
 
         return jsonify(new_user)
 
-    @app.route("/login", methods=['POST'])
+    @app.route("/login", methods=["POST"])
     def login():
         credential = request.json
-        email = credential['email']
-        password = credential['password']
+        email = credential["email"]
+        password = credential["password"]
 
         print(f"#### email : {email}")
         print(f"#### password : {password}")
 
-        row = database.execute(text("""
+        row = database.execute(
+            text(
+                """
             SELECT
                 id,
                 hashed_password
             FROM users
             WHERE email = :email
-        """), {'email' : email}).fetchone()
+        """
+            ),
+            {"email": email},
+        ).fetchone()
 
         print(f"**** row['hashed_password'] : {row['hashed_password']}")
 
-        if row and bcrypt.checkpw(password.encode('UTF-8'), row['hashed_password'].encode('UTF-8')):
-            user_id = row['id']
+        if row and bcrypt.checkpw(
+            password.encode("UTF-8"), row["hashed_password"].encode("UTF-8")
+        ):
+            user_id = row["id"]
             payload = {
-                    'user_id' : user_id,
-                    'exp' : datetime.utcnow() + timedelta(seconds = 60*60*24)
+                "user_id": user_id,
+                "exp": datetime.utcnow() + timedelta(seconds=60 * 60 * 24),
             }
-            token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], 'HS256')
+            token = jwt.encode(payload, app.config["JWT_SECRET_KEY"], "HS256")
             print(f"token: {token} - {type(token)}")
 
-            return jsonify({
-                'access_token' : token,
-                'user_id' : user_id
-            })
+            return jsonify({"access_token": token, "user_id": user_id})
         else:
-            return '', 401
+            return "", 401
 
     @app.route("/tweet", methods=["POST"])
     @login_required
     def tweet():
         user_tweet = request.json
-        user_tweet['id'] = g.user_id
+        user_tweet["id"] = g.user_id
         tweet = user_tweet["tweet"]
 
         if len(tweet) > 300:
@@ -252,14 +295,11 @@ def create_app(test_config=None):
     def timeline(user_id):
         return jsonify({"user_id": user_id, "timeline": get_timeline(user_id)})
 
-    @app.route("/timeline", methods=['GET'])
+    @app.route("/timeline", methods=["GET"])
     @login_required
     def user_timeline():
         user_id = g.user_id
 
-        return jsonify({
-            'user_id' : user_id,
-            'timeline' : get_timeline(user_id)
-        })
+        return jsonify({"user_id": user_id, "timeline": get_timeline(user_id)})
 
     return app
