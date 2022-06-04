@@ -7,8 +7,7 @@ database = create_engine(config.test_config['DB_URL'], encoding='utf-8', max_ove
 import pytest
 from app import create_app
 import json
-
-new_user_id = 0
+import bcrypt
 
 @pytest.fixture
 def api():
@@ -18,6 +17,40 @@ def api():
 
     return api;
 
+def setup_function():
+    hashed_password = bcrypt.hashpw(
+            b"1111",
+            bcrypt.gensalt()
+    )
+    new_user = {
+            'id'    : 1,
+            'name'  : 'TaeYeon',
+            'email' : 'taeyeon@gmail.com',
+            'profile' : 'singer',
+            'hashed_password' : hashed_password
+    }
+    database.execute(text("""
+        INSERT INTO users (
+            id,
+            name,
+            email,
+            profile,
+            hashed_password
+        ) VALUES (
+            :id,
+            :name,
+            :email,
+            :profile,
+            :hashed_password
+        )
+    """), new_user)
+
+def teardown_function():
+    database.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+    database.execute(text("TRUNCATE users"))
+    database.execute(text("TRUNCATE tweets"))
+    database.execute(text("TRUNCATE users_follow_list"))
+    database.execute(text("SET FOREIGN_KEY_CHECKS=1"))
 
 def test_ping(api):
     resp = api.get('/ping')
@@ -41,15 +74,12 @@ def test_sign_up(api):
 
     assert resp.status_code == 200
 
-    resp_json = json.loads(resp.data.decode('utf-8'))
-    new_user_id = resp_json['id']
-
 
 def test_login(api):
     # login
     resp = api.post(
             '/login',
-            data = json.dumps({'email':'kim@gmail.com', 'password':'1111'}),
+            data = json.dumps({'email':'taeyeon@gmail.com', 'password':'1111'}),
             content_type = 'application/json'
     )
 
@@ -60,7 +90,7 @@ def test_tweet(api):
 
     resp = api.post(
             '/login',
-            data = json.dumps({'email':'kim@gmail.com', 'password':'1111'}),
+            data = json.dumps({'email':'taeyeon@gmail.com', 'password':'1111'}),
             content_type = 'application/json'
     )
 
