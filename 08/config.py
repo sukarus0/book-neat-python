@@ -15,7 +15,8 @@ test_db = {
     'database'  : 'miniter_test'
 }
 test_config = {
-        'DB_URL' : f"mysql+mysqlconnector://{test_db['user']}:{test_db['password']}@{test_db['host']}:{test_db['port']}/{test_db['database']}?charset=utf8"
+        'DB_URL' : f"mysql+mysqlconnector://{test_db['user']}:{test_db['password']}@{test_db['host']}:{test_db['port']}/{test_db['database']}?charset=utf8",
+        'JWT_SECRET_KEY' : 'SOME_SUPER_SECRET_KEY'
 }
 
 JWT_SECRET_KEY        = 'SOME_SUPER_SECRET_KEY'
