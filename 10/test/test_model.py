@@ -21,6 +21,10 @@ database = create_engine(
 def user_dao():
     return UserDao(database)
 
+@pytest.fixture
+def tweet_dao():
+    return TweetDao(database)
+
 def setup_function():
     hashed_password = bcrypt.hashpw(
             b"1111",
@@ -110,6 +114,20 @@ def get_user(user_id):
         else None
     )
 
+def get_follow_list(user_id):
+    rows = database.execute(text(
+        """
+            SELECT follow_user_id as id
+            FROM users_follow_list
+            WHERE user_id = :user_id
+        """
+        ), {
+            'user_id' : user_id
+        }
+    ).fetchall()
+
+    return [int(row['id']) for row in rows]
+
 def test_insert_user(user_dao):
     new_user = {
             'name' : 'hjseo',
@@ -127,3 +145,67 @@ def test_insert_user(user_dao):
             'email' : new_user['email'],
             'profile' : new_user['profile']
         }
+
+
+def test_get_user_id_and_password(user_dao):
+    user_credential = user_dao.get_user_id_and_password(
+            email = "dwlee@gmail.com")
+
+    assert user_credential['id'] == 1
+
+    assert bcrypt.checkpw(
+                '1111'.encode('UTF-8'),
+                user_credential['hashed_password'].encode('UTF-8')
+    )
+
+
+def test_insert_follow(user_dao):
+    user_dao.insert_follow(user_id=1, follow_id=2)
+
+    follow_list = get_follow_list(1)
+
+    assert follow_list == [2]
+
+
+def test_insert_unfollow(user_dao):
+    user_dao.insert_follow(user_id=1, follow_id=2)
+    user_dao.insert_unfollow(user_id=1, unfollow_id=2)
+
+    follow_list = get_follow_list(1)
+
+    assert follow_list == []
+
+
+def test_insert_tweet(tweet_dao):
+    tweet_dao.insert_tweet(1, "tweet test")
+    timeline = tweet_dao.get_timeline(1)
+
+    assert timeline == [
+        {
+            'user_id' : 1,
+            'tweet' : 'tweet test'
+        }
+    ]
+
+
+def test_timeline(user_dao, tweet_dao):
+    tweet_dao.insert_tweet(1, "tweet test")
+    tweet_dao.insert_tweet(2, "tweet test 2")
+    user_dao.insert_follow(1, 2)
+
+    timeline = tweet_dao.get_timeline(1)
+
+    assert timeline == [
+        {
+            'user_id' : 2,
+            'tweet' : 'I love him.'
+        },
+        {
+            'user_id' : 1,
+            'tweet' : 'tweet test'
+        },
+        {
+            'user_id' : 2,
+            'tweet' : 'tweet test 2'
+        }
+    ]
