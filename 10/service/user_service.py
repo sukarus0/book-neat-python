@@ -40,9 +40,9 @@ class UserService:
                 'user_id' : user_id,
                 'exp' : datetime.utcnow() + timedelta(seconds = 60*60*24)
                 }
-        token = jwt.decode(payload, self.config['JWT_SECRET_KEY'], 'HS256')
+        token = jwt.encode(payload, self.config['JWT_SECRET_KEY'], 'HS256')
 
-        return token.decode('UTF-8')
+        return token.encode('UTF-8')
 
     def follow(self, user_id, follow_id):
         return self.user_dao.insert_follow(user_id, follow_id)
