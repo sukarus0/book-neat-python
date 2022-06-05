@@ -49,7 +49,7 @@ def login_required(f):
     return decorated_function
 
 
-def create_endpoints(app, serivces):
+def create_endpoints(app, services):
     """
     create endpoints
     """
